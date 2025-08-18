@@ -1,75 +1,62 @@
-// Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize day.js plugins
-    dayjs.extend(dayjs_plugin_utc);
-    dayjs.extend(dayjs_plugin_timezone);
+// Modify your convertCurrency function like this:
+async function convertCurrency() {
+    const from = document.getElementById('from-currency').value;
+    const to = document.getElementById('to-currency').value;
+    const amount = parseFloat(document.getElementById('amount').value) || 1;
     
-    // Initialize dropdowns
-    initCountryDropdown();
-    initCurrencyDropdowns();
-    setPopularKHRConversions();
+    const resultElement = document.getElementById('conversion-result');
+    resultElement.textContent = "Converting...";
+    resultElement.className = "alert alert-warning";
     
-    // Load pinned items
-    loadPinnedItems();
-    
-    // Start local time display
-    updateLocalTime();
-    setInterval(updateLocalTime, 1000);
-    
-    // Detect user's local timezone and currency
-    detectUserLocation();
-});
-
-// Detect user's local timezone and currency
-function detectUserLocation() {
     try {
-        // Get timezone
-        const userTimezone = dayjs.tz.guess();
-        if (userTimezone) {
-            // Try to find in our countries data
-            const country = countriesWithTimezones.find(c => 
-                c.timezones.includes(userTimezone));
-            
-            if (country) {
-                document.getElementById('country-select').value = country.code;
-                updateCities();
-                document.getElementById('city-select').value = userTimezone;
-            }
+        const result = await getCurrencyConversion(from, to, amount);
+        
+        if (result === "N/A") {
+            throw new Error("Conversion not available");
         }
         
-        // Get currency (this is just a guess based on locale)
-        const userCurrency = Intl.NumberFormat().resolvedOptions().currency;
-        if (userCurrency && allCurrencies.some(c => c.code === userCurrency)) {
-            document.getElementById('from-currency').value = userCurrency;
+        resultElement.innerHTML = `
+            <strong>${amount} ${from} = ${result} ${to}</strong>
+            <div class="mt-2 small text-muted">Rate may vary by provider</div>
+        `;
+        resultElement.className = "alert alert-success";
+        
+    } catch (error) {
+        console.error("Conversion error:", error);
+        resultElement.innerHTML = `
+            <strong>Conversion failed</strong>
+            <div class="mt-2 small">Using approximate rate</div>
+        `;
+        resultElement.className = "alert alert-danger";
+        
+        // Show hardcoded rate as last resort
+        const hardcodedResult = getHardcodedConversion(from, to, amount);
+        if (hardcodedResult !== "N/A") {
+            resultElement.innerHTML += `
+                <div class="mt-2"><strong>Approximate:</strong> ${amount} ${from} ≈ ${hardcodedResult} ${to}</div>
+            `;
         }
-    } catch (e) {
-        console.log("Couldn't detect user location:", e);
     }
 }
 
-// Update local time display
-function updateLocalTime() {
-    const now = dayjs();
-    document.getElementById('current-local-time').textContent = now.format('h:mm:ss A');
-    document.getElementById('current-local-date').textContent = now.format('ddd, MMM D, YYYY');
+// Update your time display function:
+async function showSelectedTime() {
+    const timezone = document.getElementById('city-select').value;
+    if (!timezone) return;
+    
+    const timezoneName = document.getElementById('city-select').options[document.getElementById('city-select').selectedIndex].text;
+    const resultElement = document.getElementById('time-result');
+    
+    resultElement.textContent = "Loading...";
+    resultElement.className = "alert alert-warning";
+    
+    try {
+        const time = await getCurrentTime(timezone);
+        resultElement.textContent = `${timezoneName}: ${time}`;
+        resultElement.className = "alert alert-primary";
+    } catch (error) {
+        console.error("Time error:", error);
+        resultElement.textContent = `Couldn't fetch time for ${timezoneName}`;
+        resultElement.className = "alert alert-danger";
+    }
 }
-
-// Swap currency conversion direction
-function swapCurrencies() {
-    const from = document.getElementById('from-currency');
-    const to = document.getElementById('to-currency');
-    const temp = from.value;
-    from.value = to.value;
-    to.value = temp;
-    convertCurrency();
-}
-
-// Set specific conversion
-function setConversion(from, to, amount) {
-    document.getElementById('from-currency').value = from;
-    document.getElementById('to-currency').value = to;
-    document.getElementById('amount').value = amount;
-    convertCurrency();
-}
-
-// ... (rest of your existing functions from previous version)
