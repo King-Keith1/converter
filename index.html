@@ -3,100 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Clock & Currency Converter</title>
+    <title>Global Time & Currency Converter</title>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://unpkg.com/dayjs@1.11.7/dayjs.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.7/plugin/utc.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.7/plugin/timezone.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 </head>
 <body>
-    <div class="container mt-4">
-        <h1 class="text-center mb-4">World Clock & Currency Converter</h1>
+    <div class="container mt-3 mt-md-4">
+        <h1 class="text-center mb-4">
+            <i class="bi bi-globe-americas"></i> Global Time & Currency
+            <small class="d-block text-muted fs-6">For travelers and digital nomads</small>
+        </h1>
+        
+        <!-- Local Time Display -->
+        <div class="card mb-4 bg-light">
+            <div class="card-body text-center py-2">
+                <div id="local-time" class="fs-5">
+                    <span class="badge bg-primary me-2">Your Local Time</span>
+                    <span id="current-local-time">Loading...</span>
+                    <span id="current-local-date" class="ms-2 text-muted"></span>
+                </div>
+            </div>
+        </div>
         
         <div class="row">
-            <div class="col-md-6">
+            <!-- Timezone Converter Column -->
+            <div class="col-lg-6">
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h2>Time Zones</h2>
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h5 mb-0"><i class="bi bi-clock"></i> World Clock</h2>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label for="timezone" class="form-label">Select Timezone:</label>
-                            <select class="form-select" id="timezone" name="timezone">
-                                <option value="UTC">UTC</option>
-                                <option value="America/New_York">New York</option>
-                                <option value="Europe/London">London</option>
-                                <option value="Asia/Tokyo">Tokyo</option>
-                                <option value="Australia/Sydney">Sydney</option>
-                            </select>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="country-select" class="form-label">Country:</label>
+                                <select class="form-select" id="country-select" onchange="updateCities()">
+                                    <option value="">Select a country</option>
+                                    <!-- Countries will be populated by JS -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="city-select" class="form-label">City/Timezone:</label>
+                                <select class="form-select" id="city-select">
+                                    <option value="">Select a city</option>
+                                </select>
+                            </div>
                         </div>
-                        <button onclick="showTime()" class="btn btn-primary">Show Time</button>
-                        <div id="time-result" class="alert alert-info mt-3"></div>
-                        <button onclick="startLiveTime()" class="btn btn-outline-secondary">Live Update</button>
-                        <button onclick="pinTimezone()" class="btn btn-success ms-2">Pin Timezone</button>
+                        
+                        <div class="d-flex gap-2 mt-3">
+                            <button onclick="showSelectedTime()" class="btn btn-primary flex-grow-1">
+                                <i class="bi bi-eye"></i> Show Time
+                            </button>
+                            <button onclick="startLiveTime()" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-repeat"></i> Live
+                            </button>
+                            <button onclick="pinTimezone()" class="btn btn-success">
+                                <i class="bi bi-pin"></i> Pin
+                            </button>
+                        </div>
+                        
+                        <div id="time-result" class="alert alert-primary mt-3 mb-0"></div>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-6">
+            <!-- Currency Converter Column -->
+            <div class="col-lg-6">
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h2>Currency Converter</h2>
+                    <div class="card-header bg-success text-white">
+                        <h2 class="h5 mb-0"><i class="bi bi-cash-stack"></i> Currency Converter</h2>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
+                        <div class="row g-3">
+                            <div class="col-12 col-sm-4">
                                 <label for="amount" class="form-label">Amount:</label>
-                                <input type="number" class="form-control" id="amount" value="1" step="0.01">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-123"></i></span>
+                                    <input type="number" class="form-control" id="amount" value="1" min="0" step="0.01">
+                                </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-4">
                                 <label for="from-currency" class="form-label">From:</label>
                                 <select class="form-select" id="from-currency">
-                                    <option value="USD">USD</option>
-                                    <option value="EUR">EUR</option>
-                                    <option value="GBP">GBP</option>
-                                    <option value="JPY">JPY</option>
+                                    <!-- Currencies will be populated by JS -->
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-4">
                                 <label for="to-currency" class="form-label">To:</label>
                                 <select class="form-select" id="to-currency">
-                                    <option value="EUR">EUR</option>
-                                    <option value="USD">USD</option>
-                                    <option value="GBP">GBP</option>
-                                    <option value="JPY">JPY</option>
+                                    <!-- Currencies will be populated by JS -->
                                 </select>
                             </div>
                         </div>
-                        <button onclick="convertCurrency()" class="btn btn-primary mt-3">Convert</button>
-                        <div id="conversion-result" class="alert alert-info mt-3"></div>
-                        <button onclick="pinCurrency()" class="btn btn-success">Pin Conversion</button>
+                        
+                        <div class="d-flex gap-2 mt-3">
+                            <button onclick="convertCurrency()" class="btn btn-success flex-grow-1">
+                                <i class="bi bi-arrow-left-right"></i> Convert
+                            </button>
+                            <button onclick="swapCurrencies()" class="btn btn-outline-success">
+                                <i class="bi bi-swap"></i> Swap
+                            </button>
+                            <button onclick="pinCurrency()" class="btn btn-primary">
+                                <i class="bi bi-pin"></i> Pin
+                            </button>
+                        </div>
+                        
+                        <div id="conversion-result" class="alert alert-success mt-3 mb-0"></div>
+                        
+                        <!-- Popular Cambodian Conversions -->
+                        <div class="mt-3" id="popular-khr-conversions">
+                            <h6 class="text-muted">Popular KHR Conversions:</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button onclick="setConversion('USD', 'KHR', 1)" class="btn btn-sm btn-outline-secondary">1 USD → KHR</button>
+                                <button onclick="setConversion('EUR', 'KHR', 1)" class="btn btn-sm btn-outline-secondary">1 EUR → KHR</button>
+                                <button onclick="setConversion('KHR', 'USD', 1000)" class="btn btn-sm btn-outline-secondary">1000 KHR → USD</button>
+                                <button onclick="setConversion('KHR', 'THB', 1000)" class="btn btn-sm btn-outline-secondary">1000 KHR → THB</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="card">
-            <div class="card-header">
-                <h2>Pinned Items</h2>
+        <!-- Pinned Items Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h2 class="h5 mb-0"><i class="bi bi-pin-angle"></i> Pinned Items</h2>
             </div>
             <div class="card-body">
-                <div id="pinned-items">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h3>Pinned Timezones</h3>
-                            <div id="pinned-timezones" class="list-group"></div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <h3>Pinned Currency Conversions</h3>
-                            <div id="pinned-currencies" class="list-group"></div>
-                        </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3 class="h6">Pinned Timezones</h3>
+                        <div id="pinned-timezones" class="list-group"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h3 class="h6">Pinned Currencies</h3>
+                        <div id="pinned-currencies" class="list-group"></div>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Footer -->
+        <footer class="text-center text-muted small mb-3">
+            <p>Data updates every minute. Exchange rates may vary.</p>
+            <p>Cambodian Riel (KHR) rate: 1 USD ≈ 4,100 KHR (approximate)</p>
+        </footer>
     </div>
 
+    <script src="/js/currencyData.js"></script>
+    <script src="/js/timezoneData.js"></script>
     <script src="/js/apiService.js"></script>
     <script src="/js/script.js"></script>
 </body>
