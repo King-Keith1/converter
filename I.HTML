@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Time & Currency</title>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/plugin/timezone.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --bg-gradient-start: #e0f7fa;
+            --bg-gradient-end: #ffffff;
+            --text-color: #343a40;
+            --header-color: #007bff;
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0,0,0,0.1);
+            --light-bg: #f8f9fa;
+            --muted-text: #6c757d;
+            --primary-btn-bg: #007bff;
+            --primary-btn-hover: #0056b3;
+            --success-btn-bg: #28a745;
+            --success-btn-hover: #218838;
+            --list-item-bg: #f8f9fa;
+            --list-item-shadow: rgba(0,0,0,0.05);
+            --hover-lift: translateY(-5px);
+            --time-hover: #007bff;
+        }
+
+    body.dark-mode {
+        --bg-color: #121212;
+        --bg-gradient-start: #1e1e1e;
+        --bg-gradient-end: #121212;
+        --text-color: #e0e0e0;
+        --header-color: #4da6ff;
+        --card-bg: #1e1e1e;
+        --card-shadow: rgba(255,255,255,0.05);
+        --light-bg: #2c2c2c;
+        --muted-text: #a0a0a0;
+        --primary-btn-bg: #4da6ff;
+        --primary-btn-hover: #3385ff;
+        --success-btn-bg: #4caf50;
+        --success-btn-hover: #388e3c;
+        --list-item-bg: #2c2c2c;
+        --list-item-shadow: rgba(255,255,255,0.03);
+        --hover-lift: translateY(-3px);
+        --time-hover: #4da6ff;
+    }
+
+    body { 
+        background-color: var(--bg-color); 
+        padding-bottom: 50px; 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(to bottom, var(--bg-gradient-start), var(--bg-gradient-end));
+        color: var(--text-color);
+    }
+    .container {
+        max-width: 1200px;
+    }
+    h1 {
+        color: var(--header-color);
+        text-shadow: 1px 1px 2px var(--card-shadow);
+    }
+    .card { 
+        box-shadow: 0 4px 8px var(--card-shadow); 
+        margin-bottom: 20px; 
+        border: none;
+        border-radius: 15px;
+        transition: transform 0.2s ease-in-out;
+        background-color: var(--card-bg);
+    }
+    .card:hover {
+        transform: var(--hover-lift);
+    }
+    .card-header {
+        border-radius: 15px 15px 0 0;
+        font-weight: bold;
+    }
+    .time-display, .conversion-display { 
+        font-size: 1.2rem; 
+        font-weight: bold; 
+        color: var(--text-color);
+        transition: color 0.3s;
+    }
+    .time-display:hover, .conversion-display:hover {
+        color: var(--time-hover);
+    }
+    #local-time { 
+        font-size: 1.3rem; 
+        color: var(--header-color);
+    }
+    .bg-light {
+        background-color: var(--light-bg) !important;
+    }
+    .text-muted {
+        color: var(--muted-text) !important;
+    }
+    .list-group-item {
+        border: none;
+        background-color: var(--list-item-bg);
+        border-radius: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 4px var(--list-item-shadow);
+    }
+    .btn-primary {
+        background-color: var(--primary-btn-bg);
+        border-color: var(--primary-btn-bg);
+        transition: background-color 0.3s;
+    }
+    .btn-primary:hover {
+        background-color: var(--primary-btn-hover);
+    }
+    .btn-success {
+        background-color: var(--success-btn-bg);
+        border-color: var(--success-btn-bg);
+        transition: background-color 0.3s;
+    }
+    .btn-success:hover {
+        background-color: var(--success-btn-hover);
+    }
+    .btn-outline-primary {
+        border-color: var(--primary-btn-bg);
+        color: var(--primary-btn-bg);
+    }
+    .btn-outline-primary:hover {
+        background-color: var(--primary-btn-bg);
+        color: var(--card-bg);
+    }
+    .btn-outline-success {
+        border-color: var(--success-btn-bg);
+        color: var(--success-btn-bg);
+    }
+    .btn-outline-success:hover {
+        background-color: var(--success-btn-bg);
+        color: var(--card-bg);
+    }
+    /* Country Search Styles */
+    #country-select {
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        display: none;
+        position: absolute;
+        z-index: 1000;
+        background: var(--card-bg);
+        color: var(--text-color);
+    }
+    
+    #country-select option {
+        padding: 8px 12px;
+        cursor: pointer;
+    }
+    
+    #country-select option:hover {
+        background-color: #e0f7fa; /* Adjust for dark mode if needed */
+    }
+    
+    /* City Selector */
+    #city-select-container {
+        transition: all 0.3s ease;
+    }
+    
+    .country-search-container {
+        position: relative;
+    }
+    
+    /* Small animations for live updates */
+    .time-display, .conversion-display {
+        transition: color 0.3s;
+    }
+    
+    /* Theme toggle button */
+    #theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+</style></head>
+<body>
+    <button id="theme-toggle" class="btn btn-outline-secondary">
+        <i class="bi bi-moon-stars-fill"></i> Dark Mode
+    </button>
+
+<div class="container mt-4">
+    <h1 class="text-center mb-4">
+        <i class="bi bi-globe"></i> Global Time & Currency
+        <small class="d-block text-muted fs-6">For travelers and digital nomads</small>
+    </h1>
+    
+    <!-- Local Time Display -->
+    <div class="card mb-4 bg-light">
+        <div class="card-body text-center py-3">
+            <div id="local-time">
+                <span class="badge bg-primary me-2">Your Local Time</span>
+                <span id="current-local-time">Loading...</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Timezone Column -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0"><i class="bi bi-clock"></i> World Clock</h2>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 country-search-container">
+                        <label class="form-label">Search Country:</label>
+                        <input type="text" id="country-search" class="form-control" placeholder="Start typing a country name...">
+                        <select class="form-select mt-1" id="country-select" size="5"></select>
+                    </div>
+                    
+                    <div class="mb-3" id="city-select-container" style="display:none;">
+                        <label class="form-label">Select City/Timezone:</label>
+                        <select class="form-select" id="city-select"></select>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button onclick="showSelectedTime()" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-eye"></i> Show Time
+                        </button>
+                        <button onclick="startLiveTime()" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-repeat"></i> Live
+                        </button>
+                        <button onclick="pinTimezone()" class="btn btn-success">
+                            <i class="bi bi-pin"></i> Pin
+                        </button>
+                    </div>
+                    
+                    <div id="time-result" class="time-display mt-3 p-3 bg-light rounded"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Currency Column -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h2 class="h5 mb-0"><i class="bi bi-cash-stack"></i> Currency Converter</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Amount:</label>
+                            <input type="number" class="form-control" id="amount" value="1" min="0" step="0.01">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">From:</label>
+                            <select class="form-select" id="from-currency"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">To:</label>
+                            <select class="form-select" id="to-currency"></select>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-3">
+                        <button onclick="convertCurrency()" class="btn btn-success flex-grow-1">
+                            <i class="bi bi-arrow-left-right"></i> Convert
+                        </button>
+                        <button onclick="swapCurrencies()" class="btn btn-outline-success">
+                            <i class="bi bi-arrow-left-right"></i> Swap
+                        </button>
+                        <button onclick="pinCurrency()" class="btn btn-primary">
+                            <i class="bi bi-pin"></i> Pin
+                        </button>
+                    </div>
+                    
+                    <div id="conversion-result" class="conversion-display mt-3 p-3 bg-light rounded"></div>
+                    
+                    <!-- Hardcoded KHR rates -->
+                    <div class="mt-4">
+                        <h6 class="text-muted">Approximate KHR Rates (as of August 19, 2025):</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item">1 USD ≈ 4,017 KHR</li>
+                            <li class="list-group-item">1 EUR ≈ 4,689 KHR</li>
+                            <li class="list-group-item">1 THB ≈ 115 KHR</li>
+                        </ul>
+                        <p class="text-muted small mt-2">Rates update when online API works; fallbacks for others may vary.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pinned Items Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h2 class="h5 mb-0"><i class="bi bi-pin-angle"></i> Pinned Items</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3 class="h6">Pinned Timezones</h3>
+                    <div id="pinned-timezones" class="list-group"></div>
+                </div>
+                <div class="col-md-6">
+                    <h3 class="h6">Pinned Currencies</h3>
+                    <div id="pinned-currencies" class="list-group"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Day.js plugins
+    dayjs.extend(dayjs_plugin_utc);
+    dayjs.extend(dayjs_plugin_timezone);
+    
+    // Store pinned items
+    let pinnedItems = {
+        timezones: [],
+        currencies: []
+    };
+
+    // Currency list (refactored from duplicated HTML)
+    const currencies = [
+        { code: 'AED', name: 'United Arab Emirates dirham' },
+        { code: 'AFN', name: 'Afghan afghani' },
+        { code: 'ALL', name: 'Albanian lek' },
+        { code: 'AMD', name: 'Armenian dram' },
+        { code: 'ANG', name: 'Netherlands Antillean Guilder' },
+        { code: 'AOA', name: 'Angolan kwanza' },
+        { code: 'ARS', name: 'Argentine peso' },
+        { code: 'AUD', name: 'Australian dollar' },
+        { code: 'AWG', name: 'Aruban florin' },
+        { code: 'AZN', name: 'Azerbaijani manat' },
+        { code: 'BAM', name: 'Bosnia and Herzegovina convertible mark' },
+        { code: 'BBD', name: 'Barbados dollar' },
+        { code: 'BDT', name: 'Bangladeshi taka' },
+        { code: 'BHD', name: 'Bahraini dinar' },
+        { code: 'BIF', name: 'Burundian franc' },
+        { code: 'BMD', name: 'Bermudian dollar' },
+        { code: 'BOB', name: 'Boliviano' },
+        { code: 'BRL', name: 'Brazilian real' },
+        { code: 'BSD', name: 'Bahamian dollar' },
+        { code: 'BTN', name: 'Bhutanese ngultrum' },
+        { code: 'BWP', name: 'Botswana pula' },
+        { code: 'BYN', name: 'Belarusian ruble' },
+        { code: 'BZD', name: 'Belize dollar' },
+        { code: 'CAD', name: 'Canadian dollar' },
+        { code: 'CDF', name: 'Congolese franc' },
+        { code: 'CHF', name: 'Swiss franc' },
+        { code: 'CLP', name: 'Chilean peso' },
+        { code: 'CNY', name: 'Renminbi' },
+        { code: 'COP', name: 'Colombian peso' },
+        { code: 'CRC', name: 'Costa Rican colon' },
+        { code: 'CUP', name: 'Cuban peso' },
+        { code: 'CVE', name: 'Cape Verdean escudo' },
+        { code: 'CZK', name: 'Czech koruna' },
+        { code: 'DJF', name: 'Djiboutian franc' },
+        { code: 'DKK', name: 'Danish krone' },
+        { code: 'DOP', name: 'Dominican peso' },
+        { code: 'DZD', name: 'Algerian dinar' },
+        { code: 'EGP', name: 'Egyptian pound' },
+        { code: 'ERN', name: 'Eritrean nakfa' },
+        { code: 'ETB', name: 'Ethiopian birr' },
+        { code: 'EUR', name: 'Euro' },
+        { code: 'FJD', name: 'Fiji dollar' },
+        { code: 'FKP', name: 'Falkland Islands pound' },
+        { code: 'GBP', name: 'Pound sterling' },
+        { code: 'GEL', name: 'Georgian lari' },
+        { code: 'GHS', name: 'Ghanaian cedi' },
+        { code: 'GIP', name: 'Gibraltar pound' },
+        { code: 'GMD', name: 'Gambian dalasi' },
+        { code: 'GNF', name: 'Guinean franc' },
+        { code: 'GTQ', name: 'Guatemalan quetzal' },
+        { code: 'GYD', name: 'Guyanese dollar' },
+        { code: 'HKD', name: 'Hong Kong dollar' },
+        { code: 'HNL', name: 'Honduran lempira' },
+        { code: 'HTG', name: 'Haitian gourde' },
+        { code: 'HUF', name: 'Hungarian forint' },
+        { code: 'IDR', name: 'Indonesian rupiah' },
+        { code: 'ILS', name: 'Israeli new shekel' },
+        { code: 'INR', name: 'Indian rupee' },
+        { code: 'IQD', name: 'Iraqi dinar' },
+        { code: 'IRR', name: 'Iranian rial' },
+        { code: 'ISK', name: 'Icelandic króna' },
+        { code: 'JMD', name: 'Jamaican dollar' },
+        { code: 'JOD', name: 'Jordanian dinar' },
+        { code: 'JPY', name: 'Japanese yen' },
+        { code: 'KES', name: 'Kenyan shilling' },
+        { code: 'KGS', name: 'Kyrgyzstani som' },
+        { code: 'KHR', name: 'Cambodian riel' },
+        { code: 'KMF', name: 'Comoro franc' },
+        { code: 'KPW', name: 'North Korean won' },
+        { code: 'KRW', name: 'South Korean won' },
+        { code: 'KWD', name: 'Kuwaiti dinar' },
+        { code: 'KYD', name: 'Cayman Islands dollar' },
+        { code: 'KZT', name: 'Kazakhstani tenge' },
+        { code: 'LAK', name: 'Lao kip' },
+        { code: 'LBP', name: 'Lebanese pound' },
+        { code: 'LKR', name: 'Sri Lankan rupee' },
+        { code: 'LRD', name: 'Liberian dollar' },
+        { code: 'LSL', name: 'Lesotho loti' },
+        { code: 'LYD', name: 'Libyan dinar' },
+        { code: 'MAD', name: 'Moroccan dirham' },
+        { code: 'MDL', name: 'Moldovan leu' },
+        { code: 'MGA', name: 'Malagasy ariary' },
+        { code: 'MKD', name: 'Macedonian denar' },
+        { code: 'MMK', name: 'Myanmar kyat' },
+        { code: 'MNT', name: 'Mongolian tögrög' },
+        { code: 'MOP', name: 'Macanese pataca' },
+        { code: 'MRU', name: 'Mauritanian ouguiya' },
+        { code: 'MUR', name: 'Mauritian rupee' },
+        { code: 'MVR', name: 'Maldivian rufiyaa' },
+        { code: 'MWK', name: 'Malawian kwacha' },
+        { code: 'MXN', name: 'Mexican peso' },
+        { code: 'MYR', name: 'Malaysian ringgit' },
+        { code: 'MZN', name: 'Mozambican metical' },
+        { code: 'NAD', name: 'Namibian dollar' },
+        { code: 'NGN', name: 'Nigerian naira' },
+        { code: 'NIO', name: 'Nicaraguan córdoba' },
+        { code: 'NOK', name: 'Norwegian krone' },
+        { code: 'NPR', name: 'Nepalese rupee' },
+        { code: 'NZD', name: 'New Zealand dollar' },
+        { code: 'OMR', name: 'Omani rial' },
+        { code: 'PAB', name: 'Panamanian balboa' },
+        { code: 'PEN', name: 'Peruvian sol' },
+        { code: 'PGK', name: 'Papua New Guinean kina' },
+        { code: 'PHP', name: 'Philippine peso' },
+        { code: 'PKR', name: 'Pakistani rupee' },
+        { code: 'PLN', name: 'Polish złoty' },
+        { code: 'PYG', name: 'Paraguayan guaraní' },
+        { code: 'QAR', name: 'Qatari riyal' },
+        { code: 'RON', name: 'Romanian leu' },
+        { code: 'RSD', name: 'Serbian dinar' },
+        { code: 'RUB', name: 'Russian ruble' },
+        { code: 'RWF', name: 'Rwandan franc' },
+        { code: 'SAR', name: 'Saudi riyal' },
+        { code: 'SBD', name: 'Solomon Islands dollar' },
+        { code: 'SCR', name: 'Seychelles rupee' },
+        { code: 'SDG', name: 'Sudanese pound' },
+        { code: 'SEK', name: 'Swedish krona' },
+        { code: 'SGD', name: 'Singapore dollar' },
+        { code: 'SLL', name: 'Sierra Leonean leone (new leone)' },
+        { code: 'SOS', name: 'Somalian shilling' },
+        { code: 'SRD', name: 'Surinamese dollar' },
+        { code: 'SSP', name: 'South Sudanese pound' },
+        { code: 'STN', name: 'São Tomé and Príncipe dobra' },
+        { code: 'SYP', name: 'Syrian pound' },
+        { code: 'SZL', name: 'Swazi lilangeni' },
+        { code: 'THB', name: 'Thai baht' },
+        { code: 'TJS', name: 'Tajikistani somoni' },
+        { code: 'TMT', name: 'Turkmenistan manat' },
+        { code: 'TND', name: 'Tunisian dinar' },
+        { code: 'TOP', name: 'Tongan paʻanga' },
+        { code: 'TRY', name: 'Turkish lira' },
+        { code: 'TTD', name: 'Trinidad and Tobago dollar' },
+        { code: 'TWD', name: 'New Taiwan dollar' },
+        { code: 'TZS', name: 'Tanzanian shilling' },
+        { code: 'UAH', name: 'Ukrainian hryvnia' },
+        { code: 'UGX', name: 'Ugandan shilling' },
+        { code: 'USD', name: 'United States dollar' },
+        { code: 'UYU', name: 'Uruguayan peso' },
+        { code: 'UZS', name: 'Uzbekistani sum' },
+        { code: 'VES', name: 'Venezuelan sovereign bolívar' },
+        { code: 'VND', name: 'Vietnamese đồng' },
+        { code: 'VUV', name: 'Vanuatu vatu' },
+        { code: 'WST', name: 'Samoan tala' },
+        { code: 'XAF', name: 'CFA franc BEAC' },
+        { code: 'XCD', name: 'East Caribbean dollar' },
+        { code: 'XOF', name: 'CFA franc BCEAO' },
+        { code: 'XPF', name: 'CFP franc (franc Pacifique)' },
+        { code: 'YER', name: 'Yemeni rial' },
+        { code: 'ZAR', name: 'South African rand' },
+        { code: 'ZMW', name: 'Zambian kwacha' },
+        { code: 'ZWL', name: 'Zimbabwean dollar' }
+    ];
+
+    // Comprehensive country and timezone data with currencies
+    const countryData = [
+        { code: 'AF', name: 'Afghanistan', timezones: ['Asia/Kabul'], currency: 'AFN' },
+        { code: 'AL', name: 'Albania', timezones: ['Europe/Tirane'], currency: 'ALL' },
+        { code: 'DZ', name: 'Algeria', timezones: ['Africa/Algiers'], currency: 'DZD' },
+        { code: 'AD', name: 'Andorra', timezones: ['Europe/Andorra'], currency: 'EUR' },
+        { code: 'AO', name: 'Angola', timezones: ['Africa/Luanda'], currency: 'AOA' },
+        { code: 'AG', name: 'Antigua and Barbuda', timezones: ['America/Antigua'], currency: 'XCD' },
+        { code: 'AR', name: 'Argentina', timezones: ['America/Buenos_Aires'], currency: 'ARS' },
+        { code: 'AM', name: 'Armenia', timezones: ['Asia/Yerevan'], currency: 'AMD' },
+        { code: 'AU', name: 'Australia', timezones: ['Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Adelaide', 'Australia/Perth', 'Australia/Darwin'], currency: 'AUD' },
+        { code: 'AT', name: 'Austria', timezones: ['Europe/Vienna'], currency: 'EUR' },
+        { code: 'AZ', name: 'Azerbaijan', timezones: ['Asia/Baku'], currency: 'AZN' },
+        { code: 'BS', name: 'Bahamas', timezones: ['America/Nassau'], currency: 'BSD' },
+        { code: 'BH', name: 'Bahrain', timezones: ['Asia/Bahrain'], currency: 'BHD' },
+        { code: 'BD', name: 'Bangladesh', timezones: ['Asia/Dhaka'], currency: 'BDT' },
+        { code: 'BB', name: 'Barbados', timezones: ['America/Barbados'], currency: 'BBD' },
+        { code: 'BY', name: 'Belarus', timezones: ['Europe/Minsk'], currency: 'BYN' },
+        { code: 'BE', name: 'Belgium', timezones: ['Europe/Brussels'], currency: 'EUR' },
+        { code: 'BZ', name: 'Belize', timezones: ['America/Belize'], currency: 'BZD' },
+        { code: 'BJ', name: 'Benin', timezones: ['Africa/Porto-Novo'], currency: 'XOF' },
+        { code: 'BT', name: 'Bhutan', timezones: ['Asia/Thimphu'], currency: 'BTN' },
+        { code: 'BO', name: 'Bolivia', timezones: ['America/La_Paz'], currency: 'BOB' },
+        { code: 'BA', name: 'Bosnia and Herzegovina', timezones: ['Europe/Sarajevo'], currency: 'BAM' },
+        { code: 'BW', name: 'Botswana', timezones: ['Africa/Gaborone'], currency: 'BWP' },
+        { code: 'BR', name: 'Brazil', timezones: ['America/Sao_Paulo', 'America/Manaus', 'America/Noronha', 'America/Rio_Branco'], currency: 'BRL' },
+        { code: 'BN', name: 'Brunei', timezones: ['Asia/Brunei'], currency: 'BND' },
+        { code: 'BG', name: 'Bulgaria', timezones: ['Europe/Sofia'], currency: 'BGN' },
+        { code: 'BF', name: 'Burkina Faso', timezones: ['Africa/Ouagadougou'], currency: 'XOF' },
+        { code: 'BI', name: 'Burundi', timezones: ['Africa/Bujumbura'], currency: 'BIF' },
+        { code: 'KH', name: 'Cambodia', timezones: ['Asia/Phnom_Penh'], currency: 'KHR' },
+        { code: 'CM', name: 'Cameroon', timezones: ['Africa/Douala'], currency: 'XAF' },
+        { code: 'CA', name: 'Canada', timezones: ['America/Toronto', 'America/Vancouver', 'America/Winnipeg', 'America/Halifax', 'America/Edmonton', 'America/St_Johns'], currency: 'CAD' },
+        { code: 'CV', name: 'Cape Verde', timezones: ['Atlantic/Cape_Verde'], currency: 'CVE' },
+        { code: 'CF', name: 'Central African Republic', timezones: ['Africa/Bangui'], currency: 'XAF' },
+        { code: 'TD', name: 'Chad', timezones: ['Africa/Ndjamena'], currency: 'XAF' },
+        { code: 'CL', name: 'Chile', timezones: ['America/Santiago', 'Pacific/Easter'], currency: 'CLP' },
+        { code: 'CN', name: 'China', timezones: ['Asia/Shanghai'], currency: 'CNY' },
+        { code: 'CO', name: 'Colombia', timezones: ['America/Bogota'], currency: 'COP' },
+        { code: 'KM', name: 'Comoros', timezones: ['Indian/Comoro'], currency: 'KMF' },
+        { code: 'CG', name: 'Congo', timezones: ['Africa/Brazzaville'], currency: 'XAF' },
+        { code: 'CD', name: 'Congo (DRC)', timezones: ['Africa/Kinshasa', 'Africa/Lubumbashi'], currency: 'CDF' },
+        { code: 'CR', name: 'Costa Rica', timezones: ['America/Costa_Rica'], currency: 'CRC' },
+        { code: 'HR', name: 'Croatia', timezones: ['Europe/Zagreb'], currency: 'EUR' },
+        { code: 'CU', name: 'Cuba', timezones: ['America/Havana'], currency: 'CUP' },
+        { code: 'CY', name: 'Cyprus', timezones: ['Asia/Nicosia'], currency: 'EUR' },
+        { code: 'CZ', name: 'Czech Republic', timezones: ['Europe/Prague'], currency: 'CZK' },
+        { code: 'DK', name: 'Denmark', timezones: ['Europe/Copenhagen'], currency: 'DKK' },
+        { code: 'DJ', name: 'Djibouti', timezones: ['Africa/Djibouti'], currency: 'DJF' },
+        { code: 'DM', name: 'Dominica', timezones: ['America/Dominica'], currency: 'XCD' },
+        { code: 'DO', name: 'Dominican Republic', timezones: ['America/Santo_Domingo'], currency: 'DOP' },
+        { code: 'TL', name: 'East Timor', timezones: ['Asia/Dili'], currency: 'USD' },
+        { code: 'EC', name: 'Ecuador', timezones: ['America/Guayaquil', 'Pacific/Galapagos'], currency: 'USD' },
+        { code: 'EG', name: 'Egypt', timezones: ['Africa/Cairo'], currency: 'EGP' },
+        { code: 'SV', name: 'El Salvador', timezones: ['America/El_Salvador'], currency: 'USD' },
+        { code: 'GQ', name: 'Equatorial Guinea', timezones: ['Africa/Malabo'], currency: 'XAF' },
+        { code: 'ER', name: 'Eritrea', timezones: ['Africa/Asmara'], currency: 'ERN' },
+        { code: 'EE', name: 'Estonia', timezones: ['Europe/Tallinn'], currency: 'EUR' },
+        { code: 'SZ', name: 'Eswatini', timezones: ['Africa/Mbabane'], currency: 'SZL' },
+        { code: 'ET', name: 'Ethiopia', timezones: ['Africa/Addis_Ababa'], currency: 'ETB' },
+        { code: 'FJ', name: 'Fiji', timezones: ['Pacific/Fiji'], currency: 'FJD' },
+        { code: 'FI', name: 'Finland', timezones: ['Europe/Helsinki'], currency: 'EUR' },
+        { code: 'FR', name: 'France', timezones: ['Europe/Paris', 'Pacific/Tahiti', 'Pacific/Marquesas', 'Pacific/Gambier', 'America/Cayenne'], currency: 'EUR' },
+        { code: 'GA', name: 'Gabon', timezones: ['Africa/Libreville'], currency: 'XAF' },
+        { code: 'GM', name: 'Gambia', timezones: ['Africa/Banjul'], currency: 'GMD' },
+        { code: 'GE', name: 'Georgia', timezones: ['Asia/Tbilisi'], currency: 'GEL' },
+        { code: 'DE', name: 'Germany', timezones: ['Europe/Berlin'], currency: 'EUR' },
+        { code: 'GH', name: 'Ghana', timezones: ['Africa/Accra'], currency: 'GHS' },
+        { code: 'GR', name: 'Greece', timezones: ['Europe/Athens'], currency: 'EUR' },
+        { code: 'GD', name: 'Grenada', timezones: ['America/Grenada'], currency: 'XCD' },
+        { code: 'GT', name: 'Guatemala', timezones: ['America/Guatemala'], currency: 'GTQ' },
+        { code: 'GN', name: 'Guinea', timezones: ['Africa/Conakry'], currency: 'GNF' },
+        { code: 'GW', name: 'Guinea-Bissau', timezones: ['Africa/Bissau'], currency: 'XOF' },
+        { code: 'GY', name: 'Guyana', timezones: ['America/Guyana'], currency: 'GYD' },
+        { code: 'HT', name: 'Haiti', timezones: ['America/Port-au-Prince'], currency: 'HTG' },
+        { code: 'HN', name: 'Honduras', timezones: ['America/Tegucigalpa'], currency: 'HNL' },
+        { code: 'HU', name: 'Hungary', timezones: ['Europe/Budapest'], currency: 'HUF' },
+        { code: 'IS', name: 'Iceland', timezones: ['Atlantic/Reykjavik'], currency: 'ISK' },
+        { code: 'IN', name: 'India', timezones: ['Asia/Kolkata'], currency: 'INR' },
+        { code: 'ID', name: 'Indonesia', timezones: ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura', 'Asia/Pontianak'], currency: 'IDR' },
+        { code: 'IR', name: 'Iran', timezones: ['Asia/Tehran'], currency: 'IRR' },
+        { code: 'IQ', name: 'Iraq', timezones: ['Asia/Baghdad'], currency: 'IQD' },
+        { code: 'IE', name: 'Ireland', timezones: ['Europe/Dublin'], currency: 'EUR' },
+        { code: 'IL', name: 'Israel', timezones: ['Asia/Jerusalem'], currency: 'ILS' },
+        { code: 'IT', name: 'Italy', timezones: ['Europe/Rome'], currency: 'EUR' },
+        { code: 'JM', name: 'Jamaica', timezones: ['America/Jamaica'], currency: 'JMD' },
+        { code: 'JP', name: 'Japan', timezones: ['Asia/Tokyo'], currency: 'JPY' },
+        { code: 'JO', name: 'Jordan', timezones: ['Asia/Amman'], currency: 'JOD' },
+        { code: 'KZ', name: 'Kazakhstan', timezones: ['Asia/Almaty', 'Asia/Aqtobe', 'Asia/Aqtau', 'Asia/Qyzylorda', 'Asia/Oral'], currency: 'KZT' },
+        { code: 'KE', name: 'Kenya', timezones: ['Africa/Nairobi'], currency: 'KES' },
+        { code: 'KI', name: 'Kiribati', timezones: ['Pacific/Tarawa', 'Pacific/Kanton', 'Pacific/Kiritimati'], currency: 'AUD' },
+        { code: 'KP', name: 'North Korea', timezones: ['Asia/Pyongyang'], currency: 'KPW' },
+        { code: 'KR', name: 'South Korea', timezones: ['Asia/Seoul'], currency: 'KRW' },
+        { code: 'KW', name: 'Kuwait', timezones: ['Asia/Kuwait'], currency: 'KWD' },
+        { code: 'KG', name: 'Kyrgyzstan', timezones: ['Asia/Bishkek'], currency: 'KGS' },
+        { code: 'LA', name: 'Laos', timezones: ['Asia/Vientiane'], currency: 'LAK' },
+        { code: 'LV', name: 'Latvia', timezones: ['Europe/Riga'], currency: 'EUR' },
+        { code: 'LB', name: 'Lebanon', timezones: ['Asia/Beirut'], currency: 'LBP' },
+        { code: 'LS', name: 'Lesotho', timezones: ['Africa/Maseru'], currency: 'LSL' },
+        { code: 'LR', name: 'Liberia', timezones: ['Africa/Monrovia'], currency: 'LRD' },
+        { code: 'LY', name: 'Libya', timezones: ['Africa/Tripoli'], currency: 'LYD' },
+        { code: 'LI', name: 'Liechtenstein', timezones: ['Europe/Vaduz'], currency: 'CHF' },
+        { code: 'LT', name: 'Lithuania', timezones: ['Europe/Vilnius'], currency: 'EUR' },
+        { code: 'LU', name: 'Luxembourg', timezones: ['Europe/Luxembourg'], currency: 'EUR' },
+        { code: 'MG', name: 'Madagascar', timezones: ['Indian/Antananarivo'], currency: 'MGA' },
+        { code: 'MW', name: 'Malawi', timezones: ['Africa/Blantyre'], currency: 'MWK' },
+        { code: 'MY', name: 'Malaysia', timezones: ['Asia/Kuala_Lumpur', 'Asia/Kuching'], currency: 'MYR' },
+        { code: 'MV', name: 'Maldives', timezones: ['Indian/Maldives'], currency: 'MVR' },
+        { code: 'ML', name: 'Mali', timezones: ['Africa/Bamako'], currency: 'XOF' },
+        { code: 'MT', name: 'Malta', timezones: ['Europe/Malta'], currency: 'EUR' },
+        { code: 'MH', name: 'Marshall Islands', timezones: ['Pacific/Majuro', 'Pacific/Kwajalein'], currency: 'USD' },
+        { code: 'MR', name: 'Mauritania', timezones: ['Africa/Nouakchott'], currency: 'MRU' },
+        { code: 'MU', name: 'Mauritius', timezones: ['Indian/Mauritius'], currency: 'MUR' },
+        { code: 'MX', name: 'Mexico', timezones: ['America/Mexico_City', 'America/Tijuana', 'America/Cancun', 'America/Hermosillo'], currency: 'MXN' },
+        { code: 'MD', name: 'Moldova', timezones: ['Europe/Chisinau'], currency: 'MDL' },
+        { code: 'MC', name: 'Monaco', timezones: ['Europe/Monaco'], currency: 'EUR' },
+        { code: 'MN', name: 'Mongolia', timezones: ['Asia/Ulaanbaatar', 'Asia/Hovd', 'Asia/Choibalsan'], currency: 'MNT' },
+        { code: 'ME', name: 'Montenegro', timezones: ['Europe/Podgorica'], currency: 'EUR' },
+        { code: 'MA', name: 'Morocco', timezones: ['Africa/Casablanca'], currency: 'MAD' },
+        { code: 'MZ', name: 'Mozambique', timezones: ['Africa/Maputo'], currency: 'MZN' },
+        { code: 'MM', name: 'Myanmar', timezones: ['Asia/Yangon'], currency: 'MMK' },
+        { code: 'NA', name: 'Namibia', timezones: ['Africa/Windhoek'], currency: 'NAD' },
+        { code: 'NR', name: 'Nauru', timezones: ['Pacific/Nauru'], currency: 'AUD' },
+        { code: 'NP', name: 'Nepal', timezones: ['Asia/Kathmandu'], currency: 'NPR' },
+        { code: 'NL', name: 'Netherlands', timezones: ['Europe/Amsterdam'], currency: 'EUR' },
+        { code: 'NZ', name: 'New Zealand', timezones: ['Pacific/Auckland', 'Pacific/Chatham'], currency: 'NZD' },
+        { code: 'NI', name: 'Nicaragua', timezones: ['America/Managua'], currency: 'NIO' },
+        { code: 'NE', name: 'Niger', timezones: ['Africa/Niamey'], currency: 'XOF' },
+        { code: 'NG', name: 'Nigeria', timezones: ['Africa/Lagos'], currency: 'NGN' },
+        { code: 'NO', name: 'Norway', timezones: ['Europe/Oslo'], currency: 'NOK' },
+        { code: 'OM', name: 'Oman', timezones: ['Asia/Muscat'], currency: 'OMR' },
+        { code: 'PK', name: 'Pakistan', timezones: ['Asia/Karachi'], currency: 'PKR' },
+        { code: 'PW', name: 'Palau', timezones: ['Pacific/Palau'], currency: 'USD' },
+        { code: 'PA', name: 'Panama', timezones: ['America/Panama'], currency: 'PAB' },
+        { code: 'PG', name: 'Papua New Guinea', timezones: ['Pacific/Port_Moresby', 'Pacific/Bougainville'], currency: 'PGK' },
+        { code: 'PY', name: 'Paraguay', timezones: ['America/Asuncion'], currency: 'PYG' },
+        { code: 'PE', name: 'Peru', timezones: ['America/Lima'], currency: 'PEN' },
+        { code: 'PH', name: 'Philippines', timezones: ['Asia/Manila'], currency: 'PHP' },
+        { code: 'PL', name: 'Poland', timezones: ['Europe/Warsaw'], currency: 'PLN' },
+        { code: 'PT', name: 'Portugal', timezones: ['Europe/Lisbon', 'Atlantic/Madeira', 'Atlantic/Azores'], currency: 'EUR' },
+        { code: 'QA', name: 'Qatar', timezones: ['Asia/Qatar'], currency: 'QAR' },
+        { code: 'RO', name: 'Romania', timezones: ['Europe/Bucharest'], currency: 'RON' },
+        { code: 'RU', name: 'Russia', timezones: ['Europe/Moscow', 'Europe/Kaliningrad', 'Asia/Yekaterinburg', 'Asia/Omsk', 'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok', 'Asia/Magadan', 'Asia/Kamchatka'], currency: 'RUB' },
+        { code: 'RW', name: 'Rwanda', timezones: ['Africa/Kigali'], currency: 'RWF' },
+        { code: 'KN', name: 'Saint Kitts and Nevis', timezones: ['America/St_Kitts'], currency: 'XCD' },
+        { code: 'LC', name: 'Saint Lucia', timezones: ['America/St_Lucia'], currency: 'XCD' },
+        { code: 'VC', name: 'Saint Vincent and the Grenadines', timezones: ['America/St_Vincent'], currency: 'XCD' },
+        { code: 'WS', name: 'Samoa', timezones: ['Pacific/Apia'], currency: 'WST' },
+        { code: 'SM', name: 'San Marino', timezones: ['Europe/San_Marino'], currency: 'EUR' },
+        { code: 'ST', name: 'Sao Tome and Principe', timezones: ['Africa/Sao_Tome'], currency: 'STN' },
+        { code: 'SA', name: 'Saudi Arabia', timezones: ['Asia/Riyadh'], currency: 'SAR' },
+        { code: 'SN', name: 'Senegal', timezones: ['Africa/Dakar'], currency: 'XOF' },
+        { code: 'RS', name: 'Serbia', timezones: ['Europe/Belgrade'], currency: 'RSD' },
+        { code: 'SC', name: 'Seychelles', timezones: ['Indian/Mahe'], currency: 'SCR' },
+        { code: 'SL', name: 'Sierra Leone', timezones: ['Africa/Freetown'], currency: 'SLL' },
+        { code: 'SG', name: 'Singapore', timezones: ['Asia/Singapore'], currency: 'SGD' },
+        { code: 'SK', name: 'Slovakia', timezones: ['Europe/Bratislava'], currency: 'EUR' },
+        { code: 'SI', name: 'Slovenia', timezones: ['Europe/Ljubljana'], currency: 'EUR' },
+        { code: 'SB', name: 'Solomon Islands', timezones: ['Pacific/Guadalcanal'], currency: 'SBD' },
+        { code: 'SO', name: 'Somalia', timezones: ['Africa/Mogadishu'], currency: 'SOS' },
+        { code: 'ZA', name: 'South Africa', timezones: ['Africa/Johannesburg'], currency: 'ZAR' },
+        { code: 'SS', name: 'South Sudan', timezones: ['Africa/Juba'], currency: 'SSP' },
+        { code: 'ES', name: 'Spain', timezones: ['Europe/Madrid', 'Atlantic/Canary'], currency: 'EUR' },
+        { code: 'LK', name: 'Sri Lanka', timezones: ['Asia/Colombo'], currency: 'LKR' },
+        { code: 'SD', name: 'Sudan', timezones: ['Africa/Khartoum'], currency: 'SDG' },
+        { code: 'SR', name: 'Suriname', timezones: ['America/Paramaribo'], currency: 'SRD' },
+        { code: 'SE', name: 'Sweden', timezones: ['Europe/Stockholm'], currency: 'SEK' },
+        { code: 'CH', name: 'Switzerland', timezones: ['Europe/Zurich'], currency: 'CHF' },
+        { code: 'SY', name: 'Syria', timezones: ['Asia/Damascus'], currency: 'SYP' },
+        { code: 'TW', name: 'Taiwan', timezones: ['Asia/Taipei'], currency: 'TWD' },
+        { code: 'TJ', name: 'Tajikistan', timezones: ['Asia/Dushanbe'], currency: 'TJS' },
+        { code: 'TZ', name: 'Tanzania', timezones: ['Africa/Dar_es_Salaam'], currency: 'TZS' },
+        { code: 'TH', name: 'Thailand', timezones: ['Asia/Bangkok'], currency: 'THB' },
+        { code: 'TG', name: 'Togo', timezones: ['Africa/Lome'], currency: 'XOF' },
+        { code: 'TO', name: 'Tonga', timezones: ['Pacific/Tongatapu'], currency: 'TOP' },
+        { code: 'TT', name: 'Trinidad and Tobago', timezones: ['America/Port_of_Spain'], currency: 'TTD' },
+        { code: 'TN', name: 'Tunisia', timezones: ['Africa/Tunis'], currency: 'TND' },
+        { code: 'TR', name: 'Turkey', timezones: ['Europe/Istanbul'], currency: 'TRY' },
+        { code: 'TM', name: 'Turkmenistan', timezones: ['Asia/Ashgabat'], currency: 'TMT' },
+        { code: 'TV', name: 'Tuvalu', timezones: ['Pacific/Funafuti'], currency: 'AUD' },
+        { code: 'UG', name: 'Uganda', timezones: ['Africa/Kampala'], currency: 'UGX' },
+        { code: 'UA', name: 'Ukraine', timezones: ['Europe/Kyiv'], currency: 'UAH' },
+        { code: 'AE', name: 'United Arab Emirates', timezones: ['Asia/Dubai'], currency: 'AED' },
+        { code: 'GB', name: 'United Kingdom', timezones: ['Europe/London'], currency: 'GBP' },
+        { code: 'US', name: 'United States', timezones: ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu'], currency: 'USD' },
+        { code: 'UY', name: 'Uruguay', timezones: ['America/Montevideo'], currency: 'UYU' },
+        { code: 'UZ', name: 'Uzbekistan', timezones: ['Asia/Tashkent', 'Asia/Samarkand'], currency: 'UZS' },
+        { code: 'VU', name: 'Vanuatu', timezones: ['Pacific/Efate'], currency: 'VUV' },
+        { code: 'VA', name: 'Vatican City', timezones: ['Europe/Vatican'], currency: 'EUR' },
+        { code: 'VE', name: 'Venezuela', timezones: ['America/Caracas'], currency: 'VES' },
+        { code: 'VN', name: 'Vietnam', timezones: ['Asia/Ho_Chi_Minh'], currency: 'VND' },
+        { code: 'YE', name: 'Yemen', timezones: ['Asia/Aden'], currency: 'YER' },
+        { code: 'ZM', name: 'Zambia', timezones: ['Africa/Lusaka'], currency: 'ZMW' },
+        { code: 'ZW', name: 'Zimbabwe', timezones: ['Africa/Harare'], currency: 'ZWL' },
+        { code: 'AS', name: 'American Samoa', timezones: ['Pacific/Pago_Pago'], currency: 'USD' },
+        { code: 'AI', name: 'Anguilla', timezones: ['America/Anguilla'], currency: 'XCD' },
+        { code: 'AW', name: 'Aruba', timezones: ['America/Aruba'], currency: 'AWG' },
+        { code: 'BM', name: 'Bermuda', timezones: ['Atlantic/Bermuda'], currency: 'BMD' },
+        { code: 'BQ', name: 'Bonaire, Sint Eustatius and Saba', timezones: ['America/Kralendijk'], currency: 'USD' },
+        { code: 'IO', name: 'British Indian Ocean Territory', timezones: ['Indian/Chagos'], currency: 'USD' },
+        { code: 'VG', name: 'British Virgin Islands', timezones: ['America/Tortola'], currency: 'USD' },
+        { code: 'KY', name: 'Cayman Islands', timezones: ['America/Cayman'], currency: 'KYD' },
+        { code: 'CX', name: 'Christmas Island', timezones: ['Indian/Christmas'], currency: 'AUD' },
+        { code: 'CC', name: 'Cocos (Keeling) Islands', timezones: ['Indian/Cocos'], currency: 'AUD' },
+        { code: 'CK', name: 'Cook Islands', timezones: ['Pacific/Rarotonga'], currency: 'NZD' },
+        { code: 'CW', name: 'Curaçao', timezones: ['America/Curacao'], currency: 'ANG' },
+        { code: 'FK', name: 'Falkland Islands', timezones: ['America/Stanley'], currency: 'FKP' },
+        { code: 'FO', name: 'Faroe Islands', timezones: ['Atlantic/Faroe'], currency: 'DKK' },
+        { code: 'GF', name: 'French Guiana', timezones: ['America/Cayenne'], currency: 'EUR' },
+        { code: 'PF', name: 'French Polynesia', timezones: ['Pacific/Tahiti'], currency: 'XPF' },
+        { code: 'GI', name: 'Gibraltar', timezones: ['Europe/Gibraltar'], currency: 'GIP' },
+        { code: 'GL', name: 'Greenland', timezones: ['America/Nuuk'], currency: 'DKK' },
+        { code: 'GP', name: 'Guadeloupe', timezones: ['America/Guadeloupe'], currency: 'EUR' },
+        { code: 'GU', name: 'Guam', timezones: ['Pacific/Guam'], currency: 'USD' },
+        { code: 'GG', name: 'Guernsey', timezones: ['Europe/Guernsey'], currency: 'GBP' },
+        { code: 'HK', name: 'Hong Kong', timezones: ['Asia/Hong_Kong'], currency: 'HKD' },
+        { code: 'IM', name: 'Isle of Man', timezones: ['Europe/Isle_of_Man'], currency: 'GBP' },
+        { code: 'JE', name: 'Jersey', timezones: ['Europe/Jersey'], currency: 'GBP' },
+        { code: 'MO', name: 'Macau', timezones: ['Asia/Macau'], currency: 'MOP' },
+        { code: 'MQ', name: 'Martinique', timezones: ['America/Martinique'], currency: 'EUR' },
+        { code: 'YT', name: 'Mayotte', timezones: ['Indian/Mayotte'], currency: 'EUR' },
+        { code: 'MS', name: 'Montserrat', timezones: ['America/Montserrat'], currency: 'XCD' },
+        { code: 'NC', name: 'New Caledonia', timezones: ['Pacific/Noumea'], currency: 'XPF' },
+        { code: 'NU', name: 'Niue', timezones: ['Pacific/Niue'], currency: 'NZD' },
+        { code: 'NF', name: 'Norfolk Island', timezones: ['Pacific/Norfolk'], currency: 'AUD' },
+        { code: 'MP', name: 'Northern Mariana Islands', timezones: ['Pacific/Saipan'], currency: 'USD' }
+    ];
+
+    // ======================
+    // COUNTRY SEARCH FUNCTIONALITY
+    // ======================
+
+    function initCountrySearch() {
+        const countrySelect = document.getElementById('country-select');
+        
+        // Sort countries alphabetically
+        countryData.sort((a, b) => a.name.localeCompare(b.name));
+        
+        // Handle events
+        document.getElementById('country-search').addEventListener('focus', function() {
+            document.getElementById('country-select').style.display = 'block';
+            filterCountries();
+        });
+        
+        document.getElementById('country-search').addEventListener('input', function() {
+            document.getElementById('country-select').style.display = 'block';
+            filterCountries();
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.country-search-container')) {
+                document.getElementById('country-select').style.display = 'none';
+            }
+        });
+        
+        document.getElementById('country-select').addEventListener('change', function() {
+            updateCities();
+        });
+    }
+    
+    function filterCountries() {
+        const searchTerm = document.getElementById('country-search').value.toLowerCase();
+        const countrySelect = document.getElementById('country-select');
+        countrySelect.innerHTML = '';
+        
+        const filtered = countryData.filter(country => country.name.toLowerCase().includes(searchTerm))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        
+        filtered.forEach(country => {
+            const option = document.createElement('option');
+            option.value = country.code;
+            option.textContent = country.name;
+            countrySelect.appendChild(option);
+        });
+        
+        if (filtered.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = 'No countries found';
+            option.disabled = true;
+            countrySelect.appendChild(option);
+        }
+    }
+    
+    function updateCities() {
+        const countryCode = document.getElementById('country-select').value;
+        const citySelect = document.getElementById('city-select');
+        const cityContainer = document.getElementById('city-select-container');
+        
+        citySelect.innerHTML = '<option value="">Select a city</option>';
+        cityContainer.style.display = 'none';
+        
+        if (!countryCode) return;
+        
+        const selectedOption = document.getElementById('country-select').options[document.getElementById('country-select').selectedIndex];
+        document.getElementById('country-search').value = selectedOption.text;
+        
+        document.getElementById('country-select').style.display = 'none';
+        
+        const country = countryData.find(c => c.code === countryCode);
+        if (country && country.timezones.length > 0) {
+            cityContainer.style.display = 'block';
+            
+            country.timezones.forEach(timezone => {
+                const cityName = timezone.split('/')[1].replace(/_/g, ' ');
+                const option = document.createElement('option');
+                option.value = timezone;
+                option.textContent = cityName;
+                citySelect.appendChild(option);
+            });
+        }
+        
+        // Set "To" currency to country's currency
+        const toCurrency = document.getElementById('to-currency');
+        if (country.currency) {
+            toCurrency.value = country.currency;
+        }
+    }
+
+    // ======================
+    // TIME FUNCTIONS
+    // ======================
+    
+    function updateLocalTime() {
+        const now = dayjs();
+        document.getElementById('current-local-time').textContent = 
+            now.format('h:mm:ss A ddd, MMM D, YYYY');
+    }
+    
+    function showSelectedTime() {
+        const timezone = document.getElementById('city-select').value;
+        if (!timezone) {
+            alert("Please select a city/timezone first");
+            return;
+        }
+        
+        const cityName = document.getElementById('city-select').options[document.getElementById('city-select').selectedIndex].text;
+        const countryName = document.getElementById('country-search').value;
+        
+        getCurrentTime(timezone)
+            .then(time => {
+                document.getElementById('time-result').textContent = 
+                    `${countryName} - ${cityName}: ${time}`;
+            })
+            .catch(error => {
+                document.getElementById('time-result').textContent = 
+                    `Error: Couldn't get time for ${cityName}`;
+            });
+    }
+    
+    function startLiveTime() {
+        const timezone = document.getElementById('city-select').value;
+        if (!timezone) {
+            alert("Please select a city/timezone first");
+            return;
+        }
+        
+        const cityName = document.getElementById('city-select').options[document.getElementById('city-select').selectedIndex].text;
+        const countryName = document.getElementById('country-search').value;
+        
+        const resultElement = document.getElementById('time-result');
+        const oldIntervalId = resultElement.dataset.intervalId;
+        if (oldIntervalId) clearInterval(parseInt(oldIntervalId));
+        
+        getCurrentTime(timezone)
+            .then(time => {
+                resultElement.textContent = 
+                    `${countryName} - ${cityName}: ${time}`;
+            });
+        
+        const intervalId = setInterval(() => {
+            getCurrentTime(timezone)
+                .then(time => {
+                    resultElement.textContent = 
+                        `${countryName} - ${cityName}: ${time}`;
+                });
+        }, 1000);
+        
+        resultElement.dataset.intervalId = intervalId;
+    }
+    
+    function pinTimezone() {
+        const timezone = document.getElementById('city-select').value;
+        if (!timezone) {
+            alert("Please select a city/timezone first");
+            return;
+        }
+        
+        const cityName = document.getElementById('city-select').options[document.getElementById('city-select').selectedIndex].text;
+        const countryName = document.getElementById('country-search').value;
+        
+        if (!pinnedItems.timezones.some(tz => tz.id === timezone)) {
+            pinnedItems.timezones.push({
+                id: timezone,
+                name: `${countryName} - ${cityName}`
+            });
+            savePinnedItems();
+            renderPinnedItems();
+        }
+    }
+    
+    // ======================
+    // CURRENCY FUNCTIONS
+    // ======================
+    
+    function convertCurrency() {
+        const from = document.getElementById('from-currency').value;
+        const to = document.getElementById('to-currency').value;
+        const amount = document.getElementById('amount').value || 1;
+        
+        document.getElementById('conversion-result').textContent = "Converting...";
+        
+        getCurrencyConversion(from, to, amount)
+            .then(result => {
+                if (result === "N/A") {
+                    document.getElementById('conversion-result').textContent = 
+                        "API unavailable. Using approximate rate.";
+                    showApproximateRate(from, to, amount);
+                } else {
+                    document.getElementById('conversion-result').textContent = 
+                        `${amount} ${from} = ${result} ${to}`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('conversion-result').textContent = 
+                    "Conversion failed. Using approximate rate.";
+                showApproximateRate(from, to, amount);
+            });
+    }
+    
+    function showApproximateRate(from, to, amount) {
+        const approximateRates = {
+            USD_KHR: 4017,
+            EUR_KHR: 4689,
+            THB_KHR: 115,
+            KHR_USD: 0.00025,
+            KHR_EUR: 0.00021,
+            KHR_THB: 0.0087,
+            USD_THB: 35,
+            THB_USD: 0.029,
+            EUR_THB: 41,
+            THB_EUR: 0.024,
+            USD_COP: 4017,  
+            COP_USD: 0.00025,
+            USD_PLN: 3.85,  
+            PLN_USD: 0.26,
+            USD_CVE: 100,   
+            CVE_USD: 0.01
+        };
+        
+        const rateKey = `${from}_${to}`;
+        if (approximateRates[rateKey]) {
+            const result = (amount * approximateRates[rateKey]).toFixed(4);
+            document.getElementById('conversion-result').textContent += 
+                `\nApproximate: ${amount} ${from} ≈ ${result} ${to}`;
+        } else {
+            document.getElementById('conversion-result').textContent += 
+                `\nNo approximate rate available for ${from} to ${to}.`;
+        }
+    }
+    
+    function swapCurrencies() {
+        const from = document.getElementById('from-currency');
+        const to = document.getElementById('to-currency');
+        const temp = from.value;
+        from.value = to.value;
+        to.value = temp;
+        convertCurrency();
+    }
+    
+    function pinCurrency() {
+        const fromSelect = document.getElementById('from-currency');
+        const toSelect = document.getElementById('to-currency');
+        const from = fromSelect.value;
+        const to = toSelect.value;
+        const id = `${from}_${to}`;
+        
+        if (!pinnedItems.currencies.some(curr => curr.id === id)) {
+            pinnedItems.currencies.push({
+                id: id,
+                from: from,
+                to: to,
+                fromName: fromSelect.options[fromSelect.selectedIndex].text.split(' - ')[1],
+                toName: toSelect.options[toSelect.selectedIndex].text.split(' - ')[1]
+            });
+            savePinnedItems();
+            renderPinnedItems();
+        }
+    }
+    
+    // ======================
+    // API FUNCTIONS
+    // ======================
+    
+    async function getCurrentTime(timezone) {
+        try {
+            const response = await fetch(`https://worldtimeapi.org/api/timezone/${timezone}`);
+            if (response.ok) {
+                const data = await response.json();
+                const date = new Date(data.datetime);
+                return date.toLocaleTimeString('en-US', {
+                    timeZone: timezone,
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+            return dayjs().tz(timezone).format('HH:mm:ss');
+        } catch (error) {
+            return dayjs().tz(timezone).format('HH:mm:ss');
+        }
+    }
+    
+    async function getCurrencyConversion(from, to, amount) {
+        try {
+            const response = await fetch(`https://open.er-api.com/v6/latest/${from}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.rates && data.rates[to]) {
+                    return (amount * data.rates[to]).toFixed(4);
+                }
+            }
+            
+            const altResponse = await fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/${from.toLowerCase()}/${to.toLowerCase()}.json`);
+            if (altResponse.ok) {
+                const altData = await altResponse.json();
+                if (altData[to.toLowerCase()]) {
+                    return (amount * altData[to.toLowerCase()]).toFixed(4);
+                }
+            }
+            
+            return "N/A";
+        } catch (error) {
+            return "N/A";
+        }
+    }
+    
+    // ======================
+    // PINNED ITEMS MANAGEMENT
+    // ======================
+    
+    function loadPinnedItems() {
+        const saved = localStorage.getItem('pinnedItems');
+        if (saved) {
+            pinnedItems = JSON.parse(saved);
+            renderPinnedItems();
+            startPinnedItemsUpdates();
+        }
+    }
+    
+    function savePinnedItems() {
+        localStorage.setItem('pinnedItems', JSON.stringify(pinnedItems));
+    }
+    
+    function renderPinnedItems() {
+        renderPinnedTimezones();
+        renderPinnedCurrencies();
+    }
+    
+    function renderPinnedTimezones() {
+        const container = document.getElementById('pinned-timezones');
+        container.innerHTML = '';
+        
+        pinnedItems.timezones.forEach(tz => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item d-flex justify-content-between align-items-center';
+            item.id = `pinned-tz-${tz.id.replace(/\//g, '-')}`;
+            
+            const content = document.createElement('div');
+            content.innerHTML = `<strong>${tz.name}</strong><div class="time-display">Loading...</div>`;
+            
+            const button = document.createElement('button');
+            button.className = 'btn btn-sm btn-danger';
+            button.innerHTML = '<i class="bi bi-x"></i>';
+            button.onclick = () => {
+                const display = content.querySelector('.time-display');
+                if (display && display.dataset.intervalId) {
+                    clearInterval(parseInt(display.dataset.intervalId));
+                }
+                pinnedItems.timezones = pinnedItems.timezones.filter(item => item.id !== tz.id);
+                savePinnedItems();
+                renderPinnedItems();
+            };
+            
+            item.appendChild(content);
+            item.appendChild(button);
+            container.appendChild(item);
+            
+            updatePinnedTimezone(tz.id, content.querySelector('.time-display'));
+        });
+    }
+    
+    function renderPinnedCurrencies() {
+        const container = document.getElementById('pinned-currencies');
+        container.innerHTML = '';
+        
+        pinnedItems.currencies.forEach(curr => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item d-flex justify-content-between align-items-center';
+            item.id = `pinned-curr-${curr.id}`;
+            
+            const content = document.createElement('div');
+            content.innerHTML = `<strong>${curr.from} → ${curr.to}</strong><div class="conversion-display">Loading...</div>`;
+            
+            const button = document.createElement('button');
+            button.className = 'btn btn-sm btn-danger';
+            button.innerHTML = '<i class="bi bi-x"></i>';
+            button.onclick = () => {
+                const display = content.querySelector('.conversion-display');
+                if (display && display.dataset.intervalId) {
+                    clearInterval(parseInt(display.dataset.intervalId));
+                }
+                pinnedItems.currencies = pinnedItems.currencies.filter(item => item.id !== curr.id);
+                savePinnedItems();
+                renderPinnedItems();
+            };
+            
+            item.appendChild(content);
+            item.appendChild(button);
+            container.appendChild(item);
+            
+            updatePinnedCurrency(curr.from, curr.to, content.querySelector('.conversion-display'));
+        });
+    }
+    
+    function startPinnedItemsUpdates() {
+        pinnedItems.timezones.forEach(tz => {
+            const element = document.querySelector(`#pinned-tz-${tz.id.replace(/\//g, '-')} .time-display`);
+            if (element) updatePinnedTimezone(tz.id, element);
+        });
+        
+        pinnedItems.currencies.forEach(curr => {
+            const element = document.querySelector(`#pinned-curr-${curr.id} .conversion-display`);
+            if (element) updatePinnedCurrency(curr.from, curr.to, element);
+        });
+    }
+    
+    function updatePinnedTimezone(timezone, element) {
+        getCurrentTime(timezone)
+            .then(time => {
+                if (element) element.textContent = time;
+            });
+        
+        const intervalId = setInterval(() => {
+            getCurrentTime(timezone)
+                .then(time => {
+                    if (element) element.textContent = time;
+                });
+        }, 1000);
+        
+        if (element) element.dataset.intervalId = intervalId;
+    }
+    
+    function updatePinnedCurrency(from, to, element) {
+        getCurrencyConversion(from, to, 1)
+            .then(result => {
+                if (element) {
+                    element.textContent = result === "N/A" ? "Rate unavailable" : `1 ${from} = ${result} ${to}`;
+                }
+            });
+        
+        const intervalId = setInterval(() => {
+            getCurrencyConversion(from, to, 1)
+                .then(result => {
+                    if (element) {
+                        element.textContent = result === "N/A" ? "Rate unavailable" : `1 ${from} = ${result} ${to}`;
+                    }
+                });
+        }, 60000);
+        
+        if (element) element.dataset.intervalId = intervalId;
+    }
+
+    // ======================
+    // DARK MODE FUNCTIONALITY
+    // ======================
+
+    function initDarkMode() {
+        const toggleButton = document.getElementById('theme-toggle');
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.body.classList.add('dark-mode');
+            toggleButton.innerHTML = '<i class="bi bi-sun-fill"></i> Light Mode';
+        }
+
+        toggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            toggleButton.innerHTML = isDark ? '<i class="bi bi-sun-fill"></i> Light Mode' : '<i class="bi bi-moon-stars-fill"></i> Dark Mode';
+        });
+    }
+
+    // ======================
+    // CURRENCY SELECT POPULATION
+    // ======================
+
+    function populateCurrencySelects() {
+        const fromSelect = document.getElementById('from-currency');
+        const toSelect = document.getElementById('to-currency');
+
+        currencies.forEach(curr => {
+            const optionFrom = document.createElement('option');
+            optionFrom.value = curr.code;
+            optionFrom.textContent = `${curr.code} - ${curr.name}`;
+            fromSelect.appendChild(optionFrom);
+
+            const optionTo = document.createElement('option');
+            optionTo.value = curr.code;
+            optionTo.textContent = `${curr.code} - ${curr.name}`;
+            toSelect.appendChild(optionTo);
+        });
+
+        // Set defaults if needed
+        fromSelect.value = 'USD';
+        toSelect.value = 'EUR';
+    }
+    
+    // ======================
+    // INITIALIZATION
+    // ======================
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        updateLocalTime();
+        setInterval(updateLocalTime, 1000);
+        initCountrySearch();
+        loadPinnedItems();
+        initDarkMode();
+        populateCurrencySelects();
+    });
+</script></body>
+</html>
+
