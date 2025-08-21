@@ -280,6 +280,39 @@
         });
     </script>
     <script src="static/main.js"></script>
+    <script>
+async function loadData() {
+  try {
+    // Call your Flask API route
+    let res = await fetch("/api/data");  
+    let data = await res.json();
+
+    // Display Local Time
+    document.getElementById("local-time").innerText = 
+      `Your Local Time: ${new Date().toLocaleTimeString()}`;
+
+    // Display City Times
+    let timeHTML = "";
+    data.times.forEach(t => {
+      timeHTML += `<p><b>${t.city}</b>: ${t.time}</p>`;
+    });
+    document.getElementById("times").innerHTML = timeHTML;
+
+    // Display Exchange Rates
+    let currencyHTML = "";
+    for (let [currency, rate] of Object.entries(data.currencies)) {
+      currencyHTML += `<p>1 USD = ${rate} ${currency}</p>`;
+    }
+    document.getElementById("currencies").innerHTML = currencyHTML;
+
+  } catch (err) {
+    console.error("Error loading data:", err);
+  }
+}
+
+// Load on startup
+loadData();
+</script>git
     
 </body>
 </html>
